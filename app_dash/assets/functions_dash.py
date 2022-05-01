@@ -1,3 +1,6 @@
+from tkinter.messagebox import NO
+
+
 def options_dropdown(labels, values = None):
 
     options = []
@@ -25,3 +28,22 @@ def options_dropdown(labels, values = None):
             )
 
     return options
+
+def value_to_list(value):
+
+    value_list = []
+
+    if value is None:
+
+        value_list = []
+
+    elif type(value) != list:
+
+        value_list.append(value)
+
+    else:
+
+        value_list = value
+
+    return value_list
+

@@ -1,5 +1,5 @@
 body {
-    background-color: #1f2630;;
+    background-color: #1f2630;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
@@ -24,10 +24,21 @@ p {
 }
 
 .selector-container-region{
+    /*display : block;*/
     background-color: #252e3f;
     margin-left: 15px;
     padding: 3px 20px 3px 20px;
-    height: 120px;
-    width: 15%;
+    /*height: 120px;*/
+    width: 12%;
+    border-radius: 5px;
+}
+
+.card-pharmacies{
+    display : inline-block;
+    background-color: #252e3f;
+    color: white;
+    height: 90px;
     border-radius: 10px;
+    text-align: center;
+    vertical-align: middle;
 }
