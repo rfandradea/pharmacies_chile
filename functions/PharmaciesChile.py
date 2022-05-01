@@ -1,9 +1,11 @@
+from ast import Return
 from pathlib import Path
 import os
 
 import re
 
 import pandas as pd
+import numpy as np
 
 import ssl
 import requests, json
@@ -81,6 +83,30 @@ class PharmaciesChile:
 
         return data
 
+    
+    def __regions(self):
+
+        regions = {
+            1 : 'Arica y Parinacota',
+            2 : 'Tarapacá',
+            3 : 'Antofagasta',
+            4 : 'Atacama',
+            5 : 'Coquimbo',
+            6 : 'Valparaíso',
+            7 : 'Metropolitana',
+            8 : "O'Higgins",
+            9 : 'Maule',
+            10 :  'Biobío',
+            11 : 'Araucanía',
+            12 : 'Los Ríos',
+            13 : 'Los Lagos',
+            14 : 'Aysén',
+            15 : 'Magallanes',
+            16 : 'Ñuble'
+        }
+
+        return regions
+
     def data_pharmacies(self):
 
         data_pharmacies_operational = self.__data_pharmacies_operational()
@@ -106,6 +132,74 @@ class PharmaciesChile:
         data_pharmacies['turno'].fillna(
             'No',
             inplace = True
+        )
+
+        # data processing
+
+        data_pharmacies['fk_region'] = data_pharmacies['fk_region'].astype(int)
+        data_pharmacies['region_nombre'] = data_pharmacies['fk_region'].replace(
+            self.__regions()
+        )
+
+        columns_title = ['local_nombre', 'comuna_nombre', 'localidad_nombre', 'local_direccion']
+
+        data_pharmacies.loc[:, columns_title] = data_pharmacies.loc[:, columns_title].apply(
+            lambda x: x.str.title()
+        )
+
+        columns_coordinates = ['local_lat', 'local_lng']
+
+        data_pharmacies.loc[:, columns_coordinates] = data_pharmacies.loc[:, columns_coordinates].replace(
+                '[^(-?\d+(\.\d+)?)|(-?\d+(\.\d+)?)$]',
+                '', 
+                regex = True
+        ).apply(
+            lambda  x: pd.to_numeric(
+                x.str.strip(),
+                errors = 'coerce'
+            ) 
+        )
+
+        conditions_latitude = [
+            (data_pharmacies['comuna_nombre'] == 'Isla de Pascua') & ((data_pharmacies['local_lat'] > -25) | (data_pharmacies['local_lat'] < -28)),
+            (data_pharmacies['comuna_nombre'] != 'Isla de Pascua') & ((data_pharmacies['local_lat'] > -15) | (data_pharmacies['local_lat'] < -57))
+        ]
+
+        conditions_longitude = [
+            (data_pharmacies['comuna_nombre'] == 'Isla de Pascua') & ((data_pharmacies['local_lng'] > -107) | (data_pharmacies['local_lng'] < -110)),
+            (data_pharmacies['comuna_nombre'] != 'Isla de Pascua') & ((data_pharmacies['local_lng'] > -64) | (data_pharmacies['local_lng'] < -76))
+        ]
+
+        data_pharmacies['local_lat'] = np.select(
+            conditions_latitude, 
+            [None, None],
+            data_pharmacies['local_lat']
+        )
+
+        data_pharmacies['local_lng'] = np.select(
+            conditions_longitude, 
+            [None, None],
+            data_pharmacies['local_lng']
+        )
+
+        conditions_latitude = [
+            data_pharmacies['local_lat'].isna() | data_pharmacies['local_lng'].isna()
+        ]
+
+        conditions_longitude = [
+            data_pharmacies['local_lat'].isna() | data_pharmacies['local_lng'].isna()
+        ]
+
+        data_pharmacies['local_lat'] = np.select(
+            conditions_latitude, 
+            [None],
+            data_pharmacies['local_lat']
+        )
+
+        data_pharmacies['local_lng'] = np.select(
+            conditions_longitude, 
+            [None],
+            data_pharmacies['local_lng']
         )
 
         return data_pharmacies
@@ -163,8 +257,17 @@ class PharmaciesChile:
 
         if format == 'csv':
 
-            data.to_csv(path + '/data.csv')
+            data.to_csv(path + '/data.csv', index = False)
 
         else:
 
-            data.to_excel(path + '/data.xlsx')
+            data.to_excel(path + '/data.xlsx', index = False)
+
+pharma = PharmaciesChile()
+
+data = pharma.data_pharmacies()
+
+pharma.download_data_pharmacies(
+    format = 'csv',
+    path = '../data/'
+)
